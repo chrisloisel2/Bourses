@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { BtcchartComponent } from '../btcchart/btcchart.component';
+import { Observable } from 'rxjs';
 
 @Component({
 	selector: 'app-cours',
@@ -9,5 +10,9 @@ import { BtcchartComponent } from '../btcchart/btcchart.component';
 	styleUrl: './cours.component.css'
 })
 export class CoursComponent {
+
+	constructor() { }
+
+	// obs.subscribe(()=>{console.log("done")});
 
 }

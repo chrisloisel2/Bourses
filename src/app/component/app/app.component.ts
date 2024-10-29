@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { CoursComponent } from "../cours/cours.component";
 import { WalletComponent } from "../wallet/wallet.component";
+import { BitcoinService } from '../../service/bitcoin.service';
 
 @Component({
 	selector: 'app-root',
@@ -12,4 +13,10 @@ import { WalletComponent } from "../wallet/wallet.component";
 })
 export class AppComponent {
 	title = 'crypto';
+
+	variable = 0;
+	constructor(
+		public bitcoin: BitcoinService
+	) {
+	}
 }
