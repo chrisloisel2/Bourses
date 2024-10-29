@@ -1,0 +1,9 @@
+<div class="wallet-container">
+	<h1>wallet</h1>
+	<h1>US Dollars {{this.wallet.wallet}} $</h1>
+	<h2>Bitcoin {{this.wallet.actions}} BTC</h2>
+	<div class="bttn">
+		<button (click)="this.wallet.acheter(1)">Acheter</button>
+		<button (click)="this.wallet.vendre(1)">Vendre</button>
+	</div>
+</div>
