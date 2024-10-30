@@ -1,6 +1,7 @@
 .chart-container {
 	width: 80vw;
 	height: 700px;
+	padding-top: 75px;
 	display: flex;
 	justify-content: center;
 	align-items: center;

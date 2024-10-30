@@ -11,13 +11,8 @@ import { BitcoinService } from '../../service/bitcoin.service';
 })
 export class WalletComponent {
 
-	constructor(public wallet: WalletService, public bitcoin: BitcoinService) { }
+	constructor(public wallet: WalletService, public bitcoin: BitcoinService) {
 
-	handler() {
-		const $obs = this.bitcoin.callChuck();
-		$obs.subscribe((data) => {
-			console.log(data);
-		});
 	}
 
 }
