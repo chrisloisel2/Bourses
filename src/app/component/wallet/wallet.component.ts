@@ -13,4 +13,11 @@ export class WalletComponent {
 
 	constructor(public wallet: WalletService, public bitcoin: BitcoinService) { }
 
+	handler() {
+		const $obs = this.bitcoin.callChuck();
+		$obs.subscribe((data) => {
+			console.log(data);
+		});
+	}
+
 }

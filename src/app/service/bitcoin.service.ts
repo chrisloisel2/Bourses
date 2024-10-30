@@ -1,12 +1,14 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, timeInterval } from 'rxjs';
 
 @Injectable({
 	providedIn: 'root'
 })
 export class BitcoinService {
 
-	constructor() { }
+	constructor(public http: HttpClient) {
+	}
 
 	value = 300;
 
@@ -43,6 +45,12 @@ export class BitcoinService {
 		{ date: '2024-01-30', price: 18200 },
 		{ date: '2024-01-31', price: 18350 }
 	];
+
+	callChuck() {
+		const $obs = this.http.get<any>('https://api.chucknorris.io/jokes/random');
+		return $obs;
+
+	}
 
 	$value = new Observable<number>((observer) => {
 		setInterval(() => {
