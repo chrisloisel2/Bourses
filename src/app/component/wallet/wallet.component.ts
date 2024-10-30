@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { WalletService } from '../../service/wallet.service';
+import { BitcoinService } from '../../service/bitcoin.service';
 
 @Component({
 	selector: 'app-wallet',
@@ -10,6 +11,6 @@ import { WalletService } from '../../service/wallet.service';
 })
 export class WalletComponent {
 
-	constructor(public wallet: WalletService) { }
+	constructor(public wallet: WalletService, public bitcoin: BitcoinService) { }
 
 }

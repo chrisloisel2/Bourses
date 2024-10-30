@@ -46,7 +46,8 @@ export class BitcoinService {
 
 	$value = new Observable<number>((observer) => {
 		setInterval(() => {
-			observer.next(490);
+			this.value = this.bitcoinData[Math.floor(Math.random() * this.bitcoinData.length)].price;
+			observer.next(this.value);
 		}, 1000);
 	})
 }
