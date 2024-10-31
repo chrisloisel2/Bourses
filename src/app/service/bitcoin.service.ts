@@ -41,21 +41,27 @@ export class BitcoinService {
 
 	async predict() {
 		let btc: any[] = await this.fetctPrice("BTCUSDT", 60);
-		console.log("btc", btc);
 		let btcData: any[] = btc.map((value) => value[4]);
-		console.log(btcData);
-		this.http.post<any>('http://localhost:5000/predict', { prices: btcData })
-			.subscribe((response) => {
-				console.log(response.predicted_price);
-				return response.predicted_price;
+		this.http.post<any>('http://localhost:5000/predict', { prices: btcData }).subscribe((data) => {
+			this.predictedData = data.map((price: any, index: number) => {
+				const date = new Date(btc[btc.length - 1][0] + (index + 1) * 60000);
+				return { date: date.toLocaleTimeString(), price };
 			});
+			console.log("predictedData", this.predictedData);
+		});
 	}
 
 	// Ajout de la prediction
 	$prediction = new Observable<any>((observer) => {
-		observer.next(this.predict().then((response) => response));
-		setInterval(async () => {
-			observer.next(await this.predict());
+		this.predict().then((prediction) => {
+			console.log("prediction obs", prediction);
+			observer.next(prediction);
+		});
+
+		setInterval(() => {
+			this.predict().then((prediction) => {
+				observer.next(prediction);
+			});
 		}, 60000);
 	});
 }

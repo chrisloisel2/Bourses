@@ -20,64 +20,65 @@ import { BitcoinService } from '../../service/bitcoin.service';
 })
 export class BtcchartComponent implements OnInit, OnDestroy {
 	option: EChartsOption = {};
-	predictedData: { date: string; price: number }[] = [];
 	minVal = 0;
 	maxVal = 1;
 	lastDate: Date = new Date();
 
+	// Ajout du service BitcoinService
+	// mettre a jour le graphique
 	constructor(public bitcoinService: BitcoinService) {
-		this.updateLimits();
 		this.updateChart();
 	}
 
+	// Appelé lors de l'initialisation du composant
 	ngOnInit(): void {
+		// Récupération des données sauvegardées dans le local storage
 		const savedData = JSON.parse(localStorage.getItem('bitcoinData') || '[]');
+		// Mise à jour des données du service "bitcoinService.bitcoinData"
 		this.bitcoinService.bitcoinData = savedData.slice(-60);
-		this.updateLimits();
+		// Mise à jour du graphique
 		this.updateChart();
+		// Souscription aux données
 		this.subscribeToData();
 	}
 
-	ngOnDestroy(): void {
-		localStorage.setItem('bitcoinData', JSON.stringify(this.bitcoinService.bitcoinData.slice(-60)));
-	}
-
-	private subscribeToData(): void {
+	// Fonction qui permet de lancer les observables
+	subscribeToData() {
+		// Lancement de l'observable "$value"
 		this.bitcoinService.$value.subscribe((value) => {
-			console.log(value);
+			// Création d'une nouvelle entrée
 			const newEntry = { date: new Date(value[0]).toLocaleTimeString(), price: value[4] };
-			console.log(newEntry);
-			this.addData(newEntry);
+			// Ajoute une nouvelle entrée dans le tableau "bitcoinData"
+			this.bitcoinService.bitcoinData.push(newEntry);
+			// Mettre a jour le graphique
+			this.updateChart();
 		});
 
+		// Lancement de l'observable "$prediction"
 		this.bitcoinService.$prediction.subscribe((prediction) => {
-			this.updatePredictedData(prediction);
+			// refresh the chart
 			this.updateChart();
 		});
 	}
 
-	private addData(newData: { date: string; price: number }): void {
-		const { bitcoinData } = this.bitcoinService;
-		bitcoinData.push(newData);
-		this.updateLimits();
-		this.updateChart();
-	}
-
 	private updatePredictedData(prediction: number[]): void {
-		this.predictedData = prediction.map((price, index) => {
+		this.bitcoinService.predictedData = prediction.map((price, index) => {
 			const date = new Date(this.lastDate.getTime() + (index + 1) * 60000);
 			return { date: date.toLocaleTimeString(), price };
 		});
 	}
 
-	private updateLimits(): void {
-		const allPrices = this.bitcoinService.bitcoinData.map(item => item.price);
+	private updateChart(): void {
+		const allPrices = [
+			...this.bitcoinService.bitcoinData.map(item => item.price),
+			...this.bitcoinService.predictedData.map(item => item.price)
+		].map(item => item.price);
 		this.minVal = Math.min(...allPrices) - 5;
 		this.maxVal = Math.max(...allPrices) + 5;
 		this.lastDate = new Date(this.bitcoinService.bitcoinData.at(-1)?.date || Date.now());
-	}
 
-	private updateChart(): void {
+		console.log('Updating chart', this.bitcoinService.predictedData);
+
 		this.option = {
 			title: { text: 'Bitcoin Price Prediction', subtext: 'Real-time and Predicted Prices' },
 			tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
@@ -87,7 +88,7 @@ export class BtcchartComponent implements OnInit, OnDestroy {
 				boundaryGap: false,
 				data: [
 					...this.bitcoinService.bitcoinData.map(item => item.date),
-					...this.predictedData.map(item => item.date)
+					...this.bitcoinService.predictedData.map(item => item.date)
 				]
 			},
 			yAxis: {
@@ -109,10 +110,20 @@ export class BtcchartComponent implements OnInit, OnDestroy {
 					name: 'Predicted Price',
 					type: 'line',
 					smooth: true,
-					data: this.predictedData.map(item => item.price),
+					data: [
+						...this.bitcoinService.bitcoinData.map(() => undefined),
+						...this.bitcoinService.predictedData.map(item => item.price)
+					],
 					lineStyle: { type: 'dashed', color: 'red' }
 				}
 			]
 		};
+	}
+
+
+	// Appelé lors de la destruction du composant
+	ngOnDestroy() {
+		// Sauvegarde des données dans le local storage
+		localStorage.setItem('bitcoinData', JSON.stringify(this.bitcoinService.bitcoinData.slice(-60)));
 	}
 }
