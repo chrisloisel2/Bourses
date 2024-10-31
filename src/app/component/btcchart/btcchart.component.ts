@@ -1,8 +1,7 @@
-import { Component, importProvidersFrom, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { EChartsOption } from 'echarts';
 import { NGX_ECHARTS_CONFIG, NgxEchartsModule } from 'ngx-echarts';
 import { BitcoinService } from '../../service/bitcoin.service';
-import { map, tap } from 'rxjs';
 
 @Component({
 	selector: 'app-btcchart',
@@ -19,93 +18,101 @@ import { map, tap } from 'rxjs';
 		}
 	]
 })
-export class BtcchartComponent {
+export class BtcchartComponent implements OnInit, OnDestroy {
 	option: EChartsOption = {};
-	buffer: any[] = [];
-	min = 0;
-	max = 0;
+	predictedData: { date: string; price: number }[] = [];
+	minVal = 0;
+	maxVal = 1;
+	lastDate: Date = new Date();
 
-	updateOption(value: number) {
+	constructor(public bitcoinService: BitcoinService) {
+		this.updateLimits();
+		this.updateChart();
+	}
+
+	ngOnInit(): void {
+		const savedData = JSON.parse(localStorage.getItem('bitcoinData') || '[]');
+		this.bitcoinService.bitcoinData = savedData.slice(-60);
+		this.updateLimits();
+		this.updateChart();
+		this.subscribeToData();
+	}
+
+	ngOnDestroy(): void {
+		localStorage.setItem('bitcoinData', JSON.stringify(this.bitcoinService.bitcoinData.slice(-60)));
+	}
+
+	private subscribeToData(): void {
+		this.bitcoinService.$value.subscribe((value) => {
+			console.log(value);
+			const newEntry = { date: new Date(value[0]).toLocaleTimeString(), price: value[4] };
+			console.log(newEntry);
+			this.addData(newEntry);
+		});
+
+		this.bitcoinService.$prediction.subscribe((prediction) => {
+			this.updatePredictedData(prediction);
+			this.updateChart();
+		});
+	}
+
+	private addData(newData: { date: string; price: number }): void {
+		const { bitcoinData } = this.bitcoinService;
+		bitcoinData.push(newData);
+		this.updateLimits();
+		this.updateChart();
+	}
+
+	private updatePredictedData(prediction: number[]): void {
+		this.predictedData = prediction.map((price, index) => {
+			const date = new Date(this.lastDate.getTime() + (index + 1) * 60000);
+			return { date: date.toLocaleTimeString(), price };
+		});
+	}
+
+	private updateLimits(): void {
+		const allPrices = this.bitcoinService.bitcoinData.map(item => item.price);
+		this.minVal = Math.min(...allPrices) - 5;
+		this.maxVal = Math.max(...allPrices) + 5;
+		this.lastDate = new Date(this.bitcoinService.bitcoinData.at(-1)?.date || Date.now());
+	}
+
+	private updateChart(): void {
 		this.option = {
-			title: {
-				text: 'Bitcoin Price Over Time',
-				subtext: 'Simulated Data'
-			},
-			tooltip: {
-				trigger: 'axis',
-				axisPointer: {
-					type: 'cross'
-				}
-			},
-			toolbox: {
-				show: true,
-				feature: {
-					saveAsImage: {}
-				}
-			},
+			title: { text: 'Bitcoin Price Prediction', subtext: 'Real-time and Predicted Prices' },
+			tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+			toolbox: { feature: { saveAsImage: {}, dataZoom: { yAxisIndex: 'none' }, restore: {} } },
 			xAxis: {
 				type: 'category',
 				boundaryGap: false,
-				data: this.buffer.map(item => item.date)
+				data: [
+					...this.bitcoinService.bitcoinData.map(item => item.date),
+					...this.predictedData.map(item => item.date)
+				]
 			},
 			yAxis: {
 				type: 'value',
-				max: this.max + 5,
-				min: this.min - 5,
-				axisLabel: {
-					formatter: '{value} $',
-				},
-				axisPointer: {
-					snap: true
-				}
-			},
-			visualMap: {
-				show: false,
-				dimension: 0,
-				pieces: [
-					{ lte: 6, color: 'green' },
-					{ gt: 6, lte: 8, color: 'red' },
-					{ gt: 8, lte: 14, color: 'green' },
-					{ gt: 14, lte: 17, color: 'red' },
-					{ gt: 17, color: 'green' }
-				]
+				min: this.minVal,
+				max: this.maxVal,
+				axisLabel: { formatter: '{value} $' },
+				axisPointer: { snap: true }
 			},
 			series: [
 				{
 					name: 'Bitcoin Price',
 					type: 'line',
 					smooth: true,
-					data: this.buffer.map(item => item.price),
-					markArea: {
-						itemStyle: {
-							color: 'rgba(255, 173, 177, 0.4)'
-						}
-					}
+					data: this.bitcoinService.bitcoinData.map(item => item.price),
+					lineStyle: { color: 'blue' }
+				},
+				{
+					name: 'Predicted Price',
+					type: 'line',
+					smooth: true,
+					data: this.predictedData.map(item => item.price),
+					lineStyle: { type: 'dashed', color: 'red' }
 				}
 			]
 		};
-	}
-
-
-	constructor(public bitcoin: BitcoinService) {
-		this.buffer = this.bitcoin.bitcoinData;
-		this.bitcoin.$value.pipe(
-			tap((value) => {
-				if (this.max === 0 && this.min === 0) {
-					this.max = value[4];
-					this.min = value[4];
-				}
-				if (value[4] > this.max) {
-					this.max = value[4];
-				}
-				else if (value[4] < this.min) {
-					this.min = value[4];
-				}
-			}),
-			map((value) => value)
-		).subscribe((value) => {
-			this.buffer.push({ date: new Date(value[0]).toLocaleTimeString(), price: value[4] });
-			this.updateOption(value[4]);
-		});
 	}
 }
